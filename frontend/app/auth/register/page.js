@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../layout';
@@ -12,6 +12,63 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check error messages from URL + Google OAuth
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const checkErrors = () => {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+
+      if (err === 'google_cancelled') {
+        setError('تم إلغاء التسجيل باستخدام Google. يرجى المحاولة مرة أخرى.');
+      } else if (err === 'no_email') {
+        setError('لم نتمكن من الحصول على البريد الإلكتروني من حساب Google.');
+      } else if (err === 'server_error') {
+        setError('حدث خطأ في الخادم. يرجى المحاولة لاحقاً.');
+      } else if (err === 'google_failed') {
+        setError('فشل التسجيل باستخدام Google.');
+      }
+
+      //  sessionStorage
+      const googleStarted = sessionStorage.getItem('google_auth_started');
+      const googleSuccess = sessionStorage.getItem('google_auth_success');
+
+      if (googleStarted === 'true' && !googleSuccess && !err) {
+        setError('تم إلغاء التسجيل باستخدام Google. يرجى المحاولة مرة أخرى.');
+      }
+
+      sessionStorage.removeItem('google_auth_started');
+      sessionStorage.removeItem('google_auth_success');
+
+      if (err) {
+        window.history.replaceState({}, '', '/auth/register');
+      }
+    };
+
+    checkErrors();
+
+    // pageshow: (back navigation)
+    window.addEventListener('pageshow', checkErrors);
+
+    //  popstate: back/forward
+    window.addEventListener('popstate', checkErrors);
+
+    // visibilitychange
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkErrors();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('pageshow', checkErrors);
+      window.removeEventListener('popstate', checkErrors);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,33 +172,37 @@ export default function RegisterPage() {
             <button type="submit" disabled={loading} className="btn-primary w-full !py-3">
               {loading ? 'جاري التسجيل…' : 'إنشاء الحساب'}
             </button>
-           </form>
-              
-           <div className="relative my-4">
+          </form>
+
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-             <div className="w-full border-t border-surface-300"></div>
-           </div>
+              <div className="w-full border-t border-surface-300"></div>
+            </div>
             <div className="relative flex justify-center text-xs">
               <span className="bg-white dark:bg-surface-900 px-3 text-surface-500">
-                 أو
-               </span>
-           </div>
-         </div>
+                أو
+              </span>
+            </div>
+          </div>
 
-          <a href="https://almujam-alshamil-api.onrender.com/api/auth/google"
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 transition-all duration-200 shadow-sm">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"
-             className="w-5 h-5">
-              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.651 32.657 29.195 36 24 36c-6.627 0-12-5.373-12-12S17.373 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.008 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4c-7.682 0-14.348 4.337-17.694 10.691z"/>
-             <path fill="#4CAF50" d="M24 44c5.167 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.144 35.091 26.65 36 24 36c-5.174 0-9.617-3.329-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
-            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.793 2.24-2.231 4.166-4.084 5.57l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
-           </svg>
-           <span className="font-medium">
-             التسجيل باستخدام Google
-            </span>
+          {/* Google OAuth */}
+          <a
+            href="https://almujam-alshamil-api.onrender.com/api/auth/google"
+            onClick={() => {
+              sessionStorage.setItem('google_auth_started', 'true');
+              sessionStorage.removeItem('google_auth_success');
+            }}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 transition-all duration-200 shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.651 32.657 29.195 36 24 36c-6.627 0-12-5.373-12-12S17.373 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.008 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4c-7.682 0-14.348 4.337-17.694 10.691z" />
+              <path fill="#4CAF50" d="M24 44c5.167 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.144 35.091 26.65 36 24 36c-5.174 0-9.617-3.329-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.793 2.24-2.231 4.166-4.084 5.57l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+            </svg>
+            <span className="font-medium">التسجيل باستخدام Google</span>
           </a>
-              
+
           <div className="text-center mt-4 text-sm text-surface-500">
             لديك حساب بالفعل؟{' '}
             <Link href="/auth/login" className="text-primary-600 hover:text-primary-700 font-medium">تسجيل الدخول</Link>

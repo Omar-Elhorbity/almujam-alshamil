@@ -423,9 +423,17 @@ router.get(
 // GOOGLE CALLBACK
 router.get(
   '/google/callback',
+  (req, res, next) => {
+    if (req.query.error === 'access_denied') {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/login?error=google_cancelled`
+      );
+    }
+    next();
+  },
   passport.authenticate('google', {
     session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/auth/login?error=google_cancelled`
+    failureRedirect: `${process.env.FRONTEND_URL}/auth/login?error=google_failed`
   }),
   async (req, res) => {
     try {
@@ -484,13 +492,9 @@ router.get(
               12
             );
 
-          const baseUsername =
-           email.split('@')[0];
+          const baseUsername = email.split('@')[0];
 
-          const username =
-          await generateUniqueUsername(
-           pool, baseUsername
-          );
+          const username = await generateUniqueUsername(pool, baseUsername);
 
           const created = await pool.query(
             `
@@ -535,80 +539,11 @@ router.get(
 
     } catch (err) {
       console.error(err);
-
-      res.redirect(
-        `${process.env.FRONTEND_URL}/auth/login`
-      );
+      res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=server_error`);
     }
   }
 );
 
-// UPDATE PROFILE
-router.put(
-  '/profile',
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const pool = req.app.locals.pool;
-
-      const {
-        display_name,
-        bio,
-        avatar_url
-      } = req.body;
-
-      const result = await pool.query(
-        `
-        UPDATE users
-        SET
-          display_name = $1,
-          bio = $2,
-          avatar_url = $3,
-          updated_at = NOW()
-        WHERE id = $4
-        RETURNING
-          id,
-          username,
-          email,
-          display_name,
-          bio,
-          avatar_url,
-          role,
-          is_active,
-          created_at,
-          updated_at
-        `,
-        [
-          display_name || null,
-          bio || null,
-          avatar_url || null,
-          req.user.id
-        ]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          error: 'المستخدم غير موجود'
-        });
-      }
-
-      res.json({
-        message: 'تم تحديث الملف الشخصي بنجاح',
-        user: result.rows[0]
-      });
-
-    } catch (err) {
-      console.error(
-        'Update profile error:',
-        err
-      );
-
-      res.status(500).json({
-        error: 'خطأ أثناء تحديث الملف الشخصي'
-      });
-    }
-  }
-);
 
 // update photo
 router.post(
