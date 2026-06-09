@@ -141,24 +141,12 @@ export default function ProfilePage() {
           className="space-y-4"
         >
 
-          <div>
+        <div>
             <label className="block mb-2 text-sm font-medium">
-              رابط الصورة الشخصية
+              الصورة الشخصية
             </label>
 
-            <input
-              type="text"
-              value={form.avatar_url}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  avatar_url:
-                    e.target.value
-                })
-              }
-              className="input-field"
-              placeholder="https://..."
-            />
+            
           </div>
 
           {form.avatar_url && (
