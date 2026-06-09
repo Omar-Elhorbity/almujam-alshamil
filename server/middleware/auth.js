@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is missing in environment variables');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
