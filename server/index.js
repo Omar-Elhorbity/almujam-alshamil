@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { Pool } = require('pg');
 const authRoutes = require('./routes/auth');
 const wordsRoutes = require('./routes/words');
@@ -51,9 +52,17 @@ const pool = new Pool({
 app.locals.pool = pool;
 
 // Middleware
-app.use(cors());
+// CORS must allow credentials and name an explicit origin (not "*") so the
+// browser will send/accept the httpOnly auth cookie. Set FRONTEND_URL to the
+// exact frontend origin (e.g. https://app.example.com). If unset, fall back to
+// reflecting the request origin so local dev keeps working.
+app.use(cors({
+  origin: process.env.FRONTEND_URL || true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);

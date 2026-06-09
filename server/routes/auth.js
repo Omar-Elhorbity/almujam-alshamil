@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, setAuthCookie, clearAuthCookie } = require('../middleware/auth');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const passport = require('../config/passport');
@@ -123,6 +123,10 @@ router.post('/register', authLimiter, async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Set the token as an httpOnly cookie (primary). Still returned in the
+    // body for backward compatibility with non-browser clients.
+    setAuthCookie(res, token);
+
     res.status(201).json({
       user,
       token
@@ -194,6 +198,8 @@ router.post('/login', authLimiter, async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    setAuthCookie(res, token);
+
     res.json({
       user: {
         id: user.id,
@@ -212,6 +218,12 @@ router.post('/login', authLimiter, async (req, res) => {
       error: 'خطأ في تسجيل الدخول'
     });
   }
+});
+
+// LOGOUT — clears the httpOnly session cookie (which JS can't remove itself).
+router.post('/logout', (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: 'تم تسجيل الخروج' });
 });
 
 
@@ -549,8 +561,13 @@ router.get(
         { expiresIn: '7d' }
       );
 
+      // Set the token as an httpOnly cookie and redirect WITHOUT the token in
+      // the URL (a token in the query string leaks via history, Referer, and
+      // proxy logs).
+      setAuthCookie(res, token);
+
       res.redirect(
-        `${process.env.FRONTEND_URL}/auth/google-success?token=${token}`
+        `${process.env.FRONTEND_URL}/auth/google-success`
       );
 
     } catch (err) {

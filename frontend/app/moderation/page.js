@@ -18,9 +18,8 @@ export default function ModerationPage() {
   const fetchPending = async () => {
     try {
       setError('');
-      const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/moderation/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -41,10 +40,10 @@ export default function ModerationPage() {
 
   const handleAction = async (wordId, action) => {
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/moderation/${wordId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ action }),
       });
       if (res.ok) {
