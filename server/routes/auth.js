@@ -282,6 +282,14 @@ router.post('/forgot-password', async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
 
+    // Persist only a SHA-256 hash of the reset token. The raw token is sent
+    // to the user by email and never stored, so a database read (leak, MITM,
+    // backup) cannot yield a usable reset token.
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
     const expiresAt = new Date(
       Date.now() + 60 * 60 * 1000
     );
@@ -297,7 +305,7 @@ router.post('/forgot-password', async (req, res) => {
       `,
       [
         user.id,
-        token,
+        tokenHash,
         expiresAt
       ]
     );
@@ -341,6 +349,13 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
+    // Hash the supplied token the same way it was stored, then look it up by
+    // hash. The plaintext token never touches the database.
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
     const tokenResult = await pool.query(
       `
       SELECT
@@ -352,7 +367,7 @@ router.post('/reset-password', async (req, res) => {
       WHERE token = $1
       LIMIT 1
       `,
-      [token]
+      [tokenHash]
     );
 
     if (tokenResult.rows.length === 0) {
