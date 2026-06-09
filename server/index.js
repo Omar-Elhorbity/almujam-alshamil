@@ -9,9 +9,15 @@ const searchRoutes = require('./routes/search');
 const statsRoutes = require('./routes/stats');
 const chatRoutes = require('./routes/chat');
 const passport = require('./config/passport');
+const { chatLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust the first proxy hop (Render/hosting) so express-rate-limit and req.ip
+// see the real client address from X-Forwarded-For, not the proxy's.
+app.set('trust proxy', 1);
+
 app.use(passport.initialize());
 
 // Database connection
@@ -35,7 +41,7 @@ app.use('/api/words', wordsRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatLimiter, chatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

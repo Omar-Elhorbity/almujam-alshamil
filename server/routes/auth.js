@@ -8,6 +8,7 @@ const { sendPasswordResetEmail } = require('../services/emailService');
 const passport = require('../config/passport');
 const upload = require('../middleware/upload');
 const supabase = require('../config/supabase');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is missing in environment variables');
@@ -43,7 +44,7 @@ async function generateUniqueUsername(
 }
 
 // REGISTER
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const {
       username,
@@ -137,7 +138,7 @@ router.post('/register', async (req, res) => {
 });
 
 // LOGIN
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
     const pool = req.app.locals.pool;
@@ -251,7 +252,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 // FORGOT PASSWORD
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     const pool = req.app.locals.pool;
@@ -324,7 +325,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // RESET PASSWORD
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
     const pool = req.app.locals.pool;
