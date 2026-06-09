@@ -72,16 +72,14 @@ export default function AddWordPage() {
         audioBase64: form.audioBase64 || null
       };
 
-      const token = localStorage.getItem('token');
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/words`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include',
           body: JSON.stringify(body),
         }
       );

@@ -27,23 +27,22 @@ export default function RootLayout({ children }) {
         document.documentElement.classList.add('dark');
       }
 
-      // Check auth token
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+      // Restore the session via the httpOnly cookie, which is sent
+      // automatically with credentials: 'include'. The token is never read
+      // from JS-accessible storage, so an XSS payload can't exfiltrate it.
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/auth/me`, {
+          credentials: 'include'
+        });
 
-          if (res.ok) {
-            const data = await res.json();
-            setUser(data.user);
-          } else {
-            setUser(null);
-          }
-        } catch (err) {
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        } else {
           setUser(null);
         }
+      } catch (err) {
+        setUser(null);
       }
 
       setLoading(false);
@@ -58,13 +57,22 @@ export default function RootLayout({ children }) {
     localStorage.setItem('theme', darkMode ? 'light' : 'dark');
   };
 
-  const login = (token, userData) => {
-    localStorage.setItem('token', token);
+  // The token now lives in an httpOnly cookie set by the backend response, so
+  // there's nothing for the client to store. The first arg is kept for
+  // call-site compatibility but intentionally ignored.
+  const login = (_token, userData) => {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://almujam-alshamil-api.onrender.com'}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      // Even if the request fails, clear local state.
+    }
     setUser(null);
   };
 

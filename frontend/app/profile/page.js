@@ -21,15 +21,10 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const token =
-          localStorage.getItem('token');
-
         const res = await fetch(
           `${apiUrl}/api/auth/me`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+            credentials: 'include'
           }
         );
 
@@ -70,19 +65,15 @@ export default function ProfilePage() {
     setError('');
 
     try {
-      const token =
-        localStorage.getItem('token');
-
       const res = await fetch(
         `${apiUrl}/api/auth/profile`,
         {
           method: 'PUT',
           headers: {
             'Content-Type':
-              'application/json',
-            Authorization:
-              `Bearer ${token}`
+              'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify(form)
         }
       );

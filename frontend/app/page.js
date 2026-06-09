@@ -88,18 +88,6 @@ export default function HomePage() {
             أول قاموس مفتوح المصدر يوثّق الكلمات العربية الفصحى واللهجات المتنوعة
             مع تسجيلات صوتية للنطق الأصلي من كل أنحاء الوطن العربي.
           </p>
-  {/* استخدام مؤقت
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(
-      localStorage.getItem('token') || ''
-    );
-    alert('تم');
-  }}
->
-  نسخ 
-</button>
-  */}
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto mb-8">
             <form action="/search" method="GET" className="relative">
