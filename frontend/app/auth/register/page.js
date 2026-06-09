@@ -88,6 +88,9 @@ export default function RegisterPage() {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // Required so the browser stores the httpOnly session cookie set by
+        // this response on a cross-origin API.
+        credentials: 'include',
         body: JSON.stringify({
           username: form.username,
           email: form.email,
