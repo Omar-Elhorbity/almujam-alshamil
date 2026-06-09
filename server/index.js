@@ -20,10 +20,30 @@ app.set('trust proxy', 1);
 
 app.use(passport.initialize());
 
+// Database SSL configuration.
+// Verify the server's TLS certificate by default (prevents MITM on DB
+// traffic). Supply the database CA certificate (PEM) via DATABASE_CA_CERT for
+// full verification against providers whose CA isn't in the system trust store
+// (e.g. Supabase). As a deliberate, explicit escape hatch for environments
+// that can't yet provide the CA, set DB_SSL_INSECURE=true to skip verification
+// — this is NOT recommended and should be temporary.
+function databaseSsl() {
+  if (process.env.DATABASE_CA_CERT) {
+    // Allow the PEM to be provided as a single line with escaped newlines
+    // (common when a cert is pasted into a hosting provider's env UI).
+    const ca = process.env.DATABASE_CA_CERT.replace(/\\n/g, '\n');
+    return { rejectUnauthorized: true, ca };
+  }
+  if (process.env.DB_SSL_INSECURE === 'true') {
+    return { rejectUnauthorized: false };
+  }
+  return { rejectUnauthorized: true };
+}
+
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: databaseSsl(),
   family: 4, // Force IPv4 to avoid Render <-> Supabase IPv6 connectivity issues
 });
 
